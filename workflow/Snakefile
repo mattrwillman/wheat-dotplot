@@ -1,25 +1,24 @@
-#This workflow maps a new genome assembly against a reference assembly.
-#To manage the large size of the wheat genome, the full sample assembly is mapped to a single chromosome of the reference assembly.
+#This workflow aligns a query genome assembly against a reference assembly.
+#To manage the large size of the wheat genome, the full query assembly is aligned to a single chromosome of the reference assembly.
 
 import os
 
-GENOTYPE = config['GENOTYPE']
-ASSEMBLY_FASTA = config['ASSEMBLY_FASTA']
-RAGTAG_REF = config['RAGTAG_REF']
-TREP_FASTA = config['TREP_FASTA']
-REF_NAME = os.path.basename(RAGTAG_REF)
+QUERY_NAME = config['QUERY_NAME']
+REF_NAME = config['REF_NAME']
+QUERY_FASTA = config['QUERY_FASTA']
+REF_FASTA = config['REF_FASTA']
 
-CHRS = ["chr1A"]
+CHRS = ["chr1A", "chr1B", "chr1D"]
 
 rule all:
     input:
         expand("results/ref_chrs/{chr}.fa", chr = CHRS), 
-        expand("results/plots/chr_full/Attraktion_{genotype}_{chr}.png", genotype = GENOTYPE, chr = CHRS), 
-        expand("results/plots/chr_chr/Attraktion_{genotype}_{chr}.png", genotype = GENOTYPE, chr = CHRS)
+        expand("results/plots/chr_full/{ref}_{query}_{chr}.png", ref = REF_NAME, query = QUERY_NAME, chr = CHRS), 
+        expand("results/plots/chr_chr/{ref}_{query}_{chr}.png", ref = REF_NAME, query = QUERY_NAME, chr = CHRS)
 
 rule subset_ref_chrs:
     input:
-        RAGTAG_REF
+        REF_FASTA
     output:
         "results/ref_chrs/{chr}.fa"
     log:
@@ -30,16 +29,16 @@ rule subset_ref_chrs:
 rule nucmer:
     input:
         ref = "results/ref_chrs/{chr}.fa", 
-        sample = ASSEMBLY_FASTA
+        sample = QUERY_FASTA
     output:
-        expand("results/Attraktion_{genotype}_{{chr}}.delta", genotype = GENOTYPE)
+        expand("results/nucmer/{ref}_{query}_{{chr}}.delta", ref = REF_NAME, query = QUERY_NAME)
     params:
-        prefix = expand("results/Attraktion_{genotype}_{{chr}}", genotype = GENOTYPE), 
+        prefix = expand("results/nucmer/{ref}_{query}_{{chr}}", ref = REF_NAME, query = QUERY_NAME), 
         maxgap = "500", 
         mincluster = "100"
     log:
         "logs/nucmer_{chr}.log"
-    threads: 48
+    threads: 16
     shell:
         "nucmer --prefix {params.prefix} "
         "--maxgap={params.maxgap} "
@@ -51,38 +50,38 @@ rule nucmer:
 
 rule filter_delta:
     input:
-        expand("results/Attraktion_{genotype}_{{chr}}.delta", genotype = GENOTYPE)
+        expand("results/nucmer/{ref}_{query}_{{chr}}.delta", ref = REF_NAME, query = QUERY_NAME)
     output:
-        expand("results/filter/Attraktion_{genotype}_{{chr}}.delta", genotype = GENOTYPE)
+        expand("results/filter/{ref}_{query}_{{chr}}.delta", ref = REF_NAME, query = QUERY_NAME)
     log:
         "logs/filter_{chr}.log"
-    threads: 48
+    threads: 16
     shell:
         "delta-filter -l 5000 -i 99 -u 99 {input} > {output} 2> {log}"
 
-rule plot_filtered_delta:
+rule plotscript_filtered_delta:
     input:
-        expand("results/filter/Attraktion_{genotype}_{{chr}}.delta", genotype = GENOTYPE)
+        expand("results/filter/{ref}_{query}_{{chr}}.delta", ref = REF_NAME, query = QUERY_NAME)
     output:
-        gp_full = expand("results/plots/chr_full/Attraktion_{genotype}_{{chr}}.gp", genotype = GENOTYPE), 
-        gp_chr = expand("results/plots/chr_chr/Attraktion_{genotype}_{{chr}}.gp", genotype = GENOTYPE)
+        gp_full = expand("results/plots/chr_full/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME), 
+        gp_chr = expand("results/plots/chr_chr/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME)
     params:
-        prefix_full = expand("results/plots/chr_full/Attraktion_{genotype}_{{chr}}", genotype = GENOTYPE), 
-        prefix_chr = expand("results/plots/chr_chr/Attraktion_{genotype}_{{chr}}", genotype = GENOTYPE), 
+        prefix_full = expand("results/plots/chr_full/{ref}_{query}_{{chr}}", ref = REF_NAME, query = QUERY_NAME), 
+        prefix_chr = expand("results/plots/chr_chr/{ref}_{query}_{{chr}}", ref = REF_NAME, query = QUERY_NAME), 
         chr = "{chr}_RagTag", 
-        title = expand("{genotype} (y) aligned to Attraktion (x)", genotype = GENOTYPE)
-    threads: 48
+        title = expand("{query} (y) aligned to {ref} (x)", query = QUERY_NAME, ref = REF_NAME)
+    threads: 16
     shell:
         "mummerplot --png -large -t {params.title} -p {params.prefix_full} {input} ; "
         "mummerplot --png -large -t {params.title} -p {params.prefix_chr} -q {params.chr} {input}"
 
 rule gnuplot_filtered_delta:
     input:
-        gp_full = expand("results/plots/chr_full/Attraktion_{genotype}_{{chr}}.gp", genotype = GENOTYPE), 
-        gp_chr = expand("results/plots/chr_chr/Attraktion_{genotype}_{{chr}}.gp", genotype = GENOTYPE)
+        gp_full = expand("results/plots/chr_full/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME), 
+        gp_chr = expand("results/plots/chr_chr/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME)
     output:
-        gp_full = expand("results/plots/chr_full/Attraktion_{genotype}_{{chr}}.png", genotype = GENOTYPE), 
-        gp_chr = expand("results/plots/chr_chr/Attraktion_{genotype}_{{chr}}.png", genotype = GENOTYPE)
+        gp_full = expand("results/plots/chr_full/{ref}_{query}_{{chr}}.png", ref = REF_NAME, query = QUERY_NAME), 
+        gp_chr = expand("results/plots/chr_chr/{ref}_{query}_{{chr}}.png", ref = REF_NAME, query = QUERY_NAME)
     shell:
         "gnuplot {input.gp_full} > {output.gp_full} ; "
         "gnuplot {input.gp_chr} > {output.gp_chr}"
