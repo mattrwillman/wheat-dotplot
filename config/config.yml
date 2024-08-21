@@ -1,0 +1,4 @@
+QUERY_NAME: "Hilliard"
+REF_NAME: "Attraktion"
+QUERY_FASTA: "/90daydata/gbru_wheat2/Snakemake_reorder/Hilliard/1_Assembly/results/Hilliard.ragtag.scaffold.fa"
+REF_FASTA: "/project/gbru_wheat2/ref/Attraktion_ENA/Attraktion.rename.fasta"

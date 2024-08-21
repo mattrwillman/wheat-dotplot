@@ -1,0 +1,89 @@
+#This workflow maps a new genome assembly against a reference assembly.
+#To manage the large size of the wheat genome, the full sample assembly is mapped to a single chromosome of the reference assembly.
+
+import os
+
+GENOTYPE = config['GENOTYPE']
+ASSEMBLY_FASTA = config['ASSEMBLY_FASTA']
+RAGTAG_REF = config['RAGTAG_REF']
+TREP_FASTA = config['TREP_FASTA']
+REF_NAME = os.path.basename(RAGTAG_REF)
+
+CHRS = ["chr1A"]
+
+rule all:
+    input:
+        expand("results/ref_chrs/{chr}.fa", chr = CHRS), 
+        expand("results/plots/chr_full/Attraktion_{genotype}_{chr}.png", genotype = GENOTYPE, chr = CHRS), 
+        expand("results/plots/chr_chr/Attraktion_{genotype}_{chr}.png", genotype = GENOTYPE, chr = CHRS)
+
+rule subset_ref_chrs:
+    input:
+        RAGTAG_REF
+    output:
+        "results/ref_chrs/{chr}.fa"
+    log:
+        "logs/subset_ref_{chr}.log"
+    shell:
+        "seqkit grep -rp '{wildcards.chr}' {input} > {output} 2> {log}"
+
+rule nucmer:
+    input:
+        ref = "results/ref_chrs/{chr}.fa", 
+        sample = ASSEMBLY_FASTA
+    output:
+        expand("results/Attraktion_{genotype}_{{chr}}.delta", genotype = GENOTYPE)
+    params:
+        prefix = expand("results/Attraktion_{genotype}_{{chr}}", genotype = GENOTYPE), 
+        maxgap = "500", 
+        mincluster = "100"
+    log:
+        "logs/nucmer_{chr}.log"
+    threads: 48
+    shell:
+        "nucmer --prefix {params.prefix} "
+        "--maxgap={params.maxgap} "
+        "--mincluster={params.mincluster} "
+        "--threads={threads} "
+        "{input.ref} "
+        "{input.sample} "
+        "2> {log}"
+
+rule filter_delta:
+    input:
+        expand("results/Attraktion_{genotype}_{{chr}}.delta", genotype = GENOTYPE)
+    output:
+        expand("results/filter/Attraktion_{genotype}_{{chr}}.delta", genotype = GENOTYPE)
+    log:
+        "logs/filter_{chr}.log"
+    threads: 48
+    shell:
+        "delta-filter -l 5000 -i 99 -u 99 {input} > {output} 2> {log}"
+
+rule plot_filtered_delta:
+    input:
+        expand("results/filter/Attraktion_{genotype}_{{chr}}.delta", genotype = GENOTYPE)
+    output:
+        gp_full = expand("results/plots/chr_full/Attraktion_{genotype}_{{chr}}.gp", genotype = GENOTYPE), 
+        gp_chr = expand("results/plots/chr_chr/Attraktion_{genotype}_{{chr}}.gp", genotype = GENOTYPE)
+    params:
+        prefix_full = expand("results/plots/chr_full/Attraktion_{genotype}_{{chr}}", genotype = GENOTYPE), 
+        prefix_chr = expand("results/plots/chr_chr/Attraktion_{genotype}_{{chr}}", genotype = GENOTYPE), 
+        chr = "{chr}_RagTag", 
+        title = expand("{genotype} (y) aligned to Attraktion (x)", genotype = GENOTYPE)
+    threads: 48
+    shell:
+        "mummerplot --png -large -t {params.title} -p {params.prefix_full} {input} ; "
+        "mummerplot --png -large -t {params.title} -p {params.prefix_chr} -q {params.chr} {input}"
+
+rule gnuplot_filtered_delta:
+    input:
+        gp_full = expand("results/plots/chr_full/Attraktion_{genotype}_{{chr}}.gp", genotype = GENOTYPE), 
+        gp_chr = expand("results/plots/chr_chr/Attraktion_{genotype}_{{chr}}.gp", genotype = GENOTYPE)
+    output:
+        gp_full = expand("results/plots/chr_full/Attraktion_{genotype}_{{chr}}.png", genotype = GENOTYPE), 
+        gp_chr = expand("results/plots/chr_chr/Attraktion_{genotype}_{{chr}}.png", genotype = GENOTYPE)
+    shell:
+        "gnuplot {input.gp_full} > {output.gp_full} ; "
+        "gnuplot {input.gp_chr} > {output.gp_chr}"
+
