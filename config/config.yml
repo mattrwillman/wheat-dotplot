@@ -1,6 +1,6 @@
 QUERY_NAME: "Hilliard"
 REF_NAME: "Attraktion"
-QUERY_FASTA: "/90daydata/gbru_wheat2/Snakemake_reorder/Hilliard/1_Assembly/results/Hilliard.ragtag.scaffold.fa"
+QUERY_FASTA: "/home/matthew.willman/ref/NCBI_MWillman/Taes_Hilliard_1.1.fasta"
 REF_FASTA: "/project/gbru_wheat2/ref/Attraktion_ENA/Attraktion.rename.fasta"
 CHRS:
   - "chr1A"
