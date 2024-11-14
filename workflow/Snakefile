@@ -67,9 +67,10 @@ rule plotscript_filtered_delta:
     params:
         prefix_full = expand("results/plots/chr_full/{ref}_{query}_{{chr}}", ref = REF_NAME, query = QUERY_NAME), 
         prefix_chr = expand("results/plots/chr_chr/{ref}_{query}_{{chr}}", ref = REF_NAME, query = QUERY_NAME), 
-        chr = "{chr}_RagTag", 
+        chr = "{chr}", 
         title = expand("{query} (y) aligned to {ref} (x)", query = QUERY_NAME, ref = REF_NAME)
     threads: 12
+    log: 
     shell:
         "mummerplot --png -large -title '{params.title}' -p {params.prefix_full} {input} ; "
         "mummerplot --png -large -title '{params.title}' -p {params.prefix_chr} -q {params.chr} {input}"
