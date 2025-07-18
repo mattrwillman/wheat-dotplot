@@ -1,4 +1,4 @@
-prefix: /project/gbru_wheat2/fhb/conda/dotplot_env
+prefix: /project/gbru_wheat2/conda/dotplot_env
 channels:
   - conda-forge
   - bioconda
