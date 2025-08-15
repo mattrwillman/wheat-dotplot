@@ -7,3 +7,4 @@ dependencies:
   - snakemake
   - mummer4
   - seqkit
+  - gnuplot
