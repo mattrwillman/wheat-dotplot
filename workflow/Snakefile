@@ -12,8 +12,13 @@ CHRS = config['CHRS']
 rule all:
     input:
         expand("results/ref_chrs/{chr}.fa", chr = CHRS), 
-        expand("results/plots/chr_full/{ref}_{query}_{chr}.png", ref = REF_NAME, query = QUERY_NAME, chr = CHRS), 
-        expand("results/plots/chr_chr/{ref}_{query}_{chr}.png", ref = REF_NAME, query = QUERY_NAME, chr = CHRS)
+        expand("results/plots/99id/chr_full/{ref}_{query}_{chr}.png", ref = REF_NAME, query = QUERY_NAME, chr = CHRS), 
+        expand("results/plots/99id/chr_chr/{ref}_{query}_{chr}.png", ref = REF_NAME, query = QUERY_NAME, chr = CHRS), 
+        expand("results/plots/20kb/chr_full/{ref}_{query}_{chr}.png", ref = REF_NAME, query = QUERY_NAME, chr = CHRS), 
+        expand("results/plots/20kb/chr_chr/{ref}_{query}_{chr}.png", ref = REF_NAME, query = QUERY_NAME, chr = CHRS), 
+        expand("results/plots/20kb_color/chr_full/{ref}_{query}_{chr}.png", ref = REF_NAME, query = QUERY_NAME, chr = CHRS), 
+        expand("results/plots/20kb_color/chr_chr/{ref}_{query}_{chr}.png", ref = REF_NAME, query = QUERY_NAME, chr = CHRS), 
+        expand("results/filter20kb_coords/{ref}_{query}_{chr}.coords", ref = REF_NAME, query = QUERY_NAME, chr = CHRS)
 
 rule subset_ref_chrs:
     input:
@@ -33,40 +38,65 @@ rule nucmer:
         expand("results/nucmer/{ref}_{query}_{{chr}}.delta", ref = REF_NAME, query = QUERY_NAME)
     params:
         prefix = expand("results/nucmer/{ref}_{query}_{{chr}}", ref = REF_NAME, query = QUERY_NAME), 
-        maxgap = "500", 
-        mincluster = "100"
+        #maxgap = "500", 
+        #mincluster = "100"
     log:
         "logs/nucmer_{chr}.log"
     threads: 12
     shell:
         "nucmer --prefix {params.prefix} "
-        "--maxgap={params.maxgap} "
-        "--mincluster={params.mincluster} "
+        #"--maxgap={params.maxgap} "
+        #"--mincluster={params.mincluster} "
         "--threads={threads} "
+        "--mum "
         "{input.ref} "
         "{input.sample} "
         "2> {log}"
 
-rule filter_delta:
+rule filter_99id:
     input:
         expand("results/nucmer/{ref}_{query}_{{chr}}.delta", ref = REF_NAME, query = QUERY_NAME)
     output:
-        expand("results/filter/{ref}_{query}_{{chr}}.delta", ref = REF_NAME, query = QUERY_NAME)
+        expand("results/filter99id/{ref}_{query}_{{chr}}.delta", ref = REF_NAME, query = QUERY_NAME)
     log:
-        "logs/filter_{chr}.log"
+        "logs/filter99id_{chr}.log"
     threads: 12
     shell:
         "delta-filter -l 5000 -i 99 -u 99 {input} > {output} 2> {log}"
 
-rule plotscript_filtered_delta:
+rule filter_20kb:
     input:
-        expand("results/filter/{ref}_{query}_{{chr}}.delta", ref = REF_NAME, query = QUERY_NAME)
+        expand("results/nucmer/{ref}_{query}_{{chr}}.delta", ref = REF_NAME, query = QUERY_NAME)
     output:
-        gp_full = expand("results/plots/chr_full/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME), 
-        gp_chr = expand("results/plots/chr_chr/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME)
+        expand("results/filter20kb/{ref}_{query}_{{chr}}.delta", ref = REF_NAME, query = QUERY_NAME)
+    log:
+        "logs/filter20kb_{chr}.log"
+    threads: 12
+    shell:
+        "delta-filter -r -q -l 20000 {input} > {output} 2> {log}"
+
+rule extract_20kb:
+    input:
+        expand("results/filter20kb/{ref}_{query}_{{chr}}.delta", ref = REF_NAME, query = QUERY_NAME)
+    output:
+        coords = expand("results/filter20kb_coords/{ref}_{query}_{{chr}}.coords", ref = REF_NAME, query = QUERY_NAME), 
+        snps = expand("results/filter20kb_snps/{ref}_{query}_{{chr}}.snps", ref = REF_NAME, query = QUERY_NAME)
+    log:
+        "logs/extract20kb_{chr}.log"
+    threads: 12
+    shell:
+        "show-coords -r -c -l {input} > {output.coords} 2> {log} ; "
+        "show-snps -C {input} > {output.snps} 2>> {log}"
+
+rule plotscript_99id:
+    input:
+        expand("results/filter99id/{ref}_{query}_{{chr}}.delta", ref = REF_NAME, query = QUERY_NAME)
+    output:
+        gp_full = expand("results/plots/99id/chr_full/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME), 
+        gp_chr = expand("results/plots/99id/chr_chr/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME)
     params:
-        prefix_full = expand("results/plots/chr_full/{ref}_{query}_{{chr}}", ref = REF_NAME, query = QUERY_NAME), 
-        prefix_chr = expand("results/plots/chr_chr/{ref}_{query}_{{chr}}", ref = REF_NAME, query = QUERY_NAME), 
+        prefix_full = expand("results/plots/99id/chr_full/{ref}_{query}_{{chr}}", ref = REF_NAME, query = QUERY_NAME), 
+        prefix_chr = expand("results/plots/99id/chr_chr/{ref}_{query}_{{chr}}", ref = REF_NAME, query = QUERY_NAME), 
         chr = "{chr}", 
         title = expand("{query} (y) aligned to {ref} (x)", query = QUERY_NAME, ref = REF_NAME)
     threads: 12
@@ -75,18 +105,81 @@ rule plotscript_filtered_delta:
         "mummerplot --png -large -title '{params.title}' -p {params.prefix_full} {input} ; "
         "mummerplot --png -large -title '{params.title}' -p {params.prefix_chr} -q {params.chr} {input}"
 
-rule gnuplot_filtered_delta:
+rule gnuplot_99id:
     input:
-        gp_full = expand("results/plots/chr_full/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME), 
-        gp_chr = expand("results/plots/chr_chr/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME)
+        gp_full = expand("results/plots/99id/chr_full/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME), 
+        gp_chr = expand("results/plots/99id/chr_chr/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME)
     output:
-        gp_full = expand("results/plots/chr_full/{ref}_{query}_{{chr}}_edit.gp", ref = REF_NAME, query = QUERY_NAME), 
-        gp_chr = expand("results/plots/chr_chr/{ref}_{query}_{{chr}}_edit.gp", ref = REF_NAME, query = QUERY_NAME), 
-        plot_full = expand("results/plots/chr_full/{ref}_{query}_{{chr}}.png", ref = REF_NAME, query = QUERY_NAME), 
-        plot_chr = expand("results/plots/chr_chr/{ref}_{query}_{{chr}}.png", ref = REF_NAME, query = QUERY_NAME)
+        gp_full = expand("results/plots/99id/chr_full/{ref}_{query}_{{chr}}_edit.gp", ref = REF_NAME, query = QUERY_NAME), 
+        gp_chr = expand("results/plots/99id/chr_chr/{ref}_{query}_{{chr}}_edit.gp", ref = REF_NAME, query = QUERY_NAME), 
+        plot_full = expand("results/plots/99id/chr_full/{ref}_{query}_{{chr}}.png", ref = REF_NAME, query = QUERY_NAME), 
+        plot_chr = expand("results/plots/99id/chr_chr/{ref}_{query}_{{chr}}.png", ref = REF_NAME, query = QUERY_NAME)
     shell:
         "sed 's/set terminal png tiny size 1400,1400/set terminal png large size 1000,1000/' {input.gp_full} > {output.gp_full} ; "
         "sed 's/set terminal png tiny size 1400,1400/set terminal png large size 1000,1000/' {input.gp_chr} > {output.gp_chr} ; "
         "gnuplot {output.gp_full} > {output.plot_full} ; "
         "gnuplot {output.gp_chr} > {output.plot_chr}"
 
+rule plotscript_20kb:
+    input:
+        expand("results/filter20kb/{ref}_{query}_{{chr}}.delta", ref = REF_NAME, query = QUERY_NAME)
+    output:
+        gp_full = expand("results/plots/20kb/chr_full/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME), 
+        gp_chr = expand("results/plots/20kb/chr_chr/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME)
+    params:
+        prefix_full = expand("results/plots/20kb/chr_full/{ref}_{query}_{{chr}}", ref = REF_NAME, query = QUERY_NAME), 
+        prefix_chr = expand("results/plots/20kb/chr_chr/{ref}_{query}_{{chr}}", ref = REF_NAME, query = QUERY_NAME), 
+        chr = "{chr}", 
+        title = expand("{query} (y) aligned to {ref} (x)", query = QUERY_NAME, ref = REF_NAME)
+    threads: 12
+    log: 
+    shell:
+        "mummerplot --png -large -title '{params.title}' -p {params.prefix_full} {input} ; "
+        "mummerplot --png -large -title '{params.title}' -p {params.prefix_chr} -q {params.chr} {input}"
+
+rule gnuplot_20kb:
+    input:
+        gp_full = expand("results/plots/20kb/chr_full/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME), 
+        gp_chr = expand("results/plots/20kb/chr_chr/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME)
+    output:
+        gp_full = expand("results/plots/20kb/chr_full/{ref}_{query}_{{chr}}_edit.gp", ref = REF_NAME, query = QUERY_NAME), 
+        gp_chr = expand("results/plots/20kb/chr_chr/{ref}_{query}_{{chr}}_edit.gp", ref = REF_NAME, query = QUERY_NAME), 
+        plot_full = expand("results/plots/20kb/chr_full/{ref}_{query}_{{chr}}.png", ref = REF_NAME, query = QUERY_NAME), 
+        plot_chr = expand("results/plots/20kb/chr_chr/{ref}_{query}_{{chr}}.png", ref = REF_NAME, query = QUERY_NAME)
+    shell:
+        "sed 's/set terminal png tiny size 1400,1400/set terminal png large size 1000,1000/' {input.gp_full} > {output.gp_full} ; "
+        "sed 's/set terminal png tiny size 1400,1400/set terminal png large size 1000,1000/' {input.gp_chr} > {output.gp_chr} ; "
+        "gnuplot {output.gp_full} > {output.plot_full} ; "
+        "gnuplot {output.gp_chr} > {output.plot_chr}"
+
+rule plotscript_20kb_color:
+    input:
+        expand("results/filter20kb/{ref}_{query}_{{chr}}.delta", ref = REF_NAME, query = QUERY_NAME)
+    output:
+        gp_full = expand("results/plots/20kb_color/chr_full/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME), 
+        gp_chr = expand("results/plots/20kb_color/chr_chr/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME)
+    params:
+        prefix_full = expand("results/plots/20kb_color/chr_full/{ref}_{query}_{{chr}}", ref = REF_NAME, query = QUERY_NAME), 
+        prefix_chr = expand("results/plots/20kb_color/chr_chr/{ref}_{query}_{{chr}}", ref = REF_NAME, query = QUERY_NAME), 
+        chr = "{chr}", 
+        title = expand("{query} (y) aligned to {ref} (x)", query = QUERY_NAME, ref = REF_NAME)
+    threads: 12
+    log: 
+    shell:
+        "mummerplot --png --color -large -title '{params.title}' -p {params.prefix_full} {input} ; "
+        "mummerplot --png --color -large -title '{params.title}' -p {params.prefix_chr} -q {params.chr} {input}"
+
+rule gnuplot_20kb_color:
+    input:
+        gp_full = expand("results/plots/20kb_color/chr_full/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME), 
+        gp_chr = expand("results/plots/20kb_color/chr_chr/{ref}_{query}_{{chr}}.gp", ref = REF_NAME, query = QUERY_NAME)
+    output:
+        gp_full = expand("results/plots/20kb_color/chr_full/{ref}_{query}_{{chr}}_edit.gp", ref = REF_NAME, query = QUERY_NAME), 
+        gp_chr = expand("results/plots/20kb_color/chr_chr/{ref}_{query}_{{chr}}_edit.gp", ref = REF_NAME, query = QUERY_NAME), 
+        plot_full = expand("results/plots/20kb_color/chr_full/{ref}_{query}_{{chr}}.png", ref = REF_NAME, query = QUERY_NAME), 
+        plot_chr = expand("results/plots/20kb_color/chr_chr/{ref}_{query}_{{chr}}.png", ref = REF_NAME, query = QUERY_NAME)
+    shell:
+        "sed 's/set terminal png tiny size 1400,1400/set terminal png large size 1000,1000/' {input.gp_full} > {output.gp_full} ; "
+        "sed 's/set terminal png tiny size 1400,1400/set terminal png large size 1000,1000/' {input.gp_chr} > {output.gp_chr} ; "
+        "gnuplot {output.gp_full} > {output.plot_full} ; "
+        "gnuplot {output.gp_chr} > {output.plot_chr}"

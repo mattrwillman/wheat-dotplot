@@ -8,3 +8,4 @@ dependencies:
   - mummer4
   - seqkit
   - gnuplot
+  - blast
