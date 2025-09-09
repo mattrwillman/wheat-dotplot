@@ -2,17 +2,18 @@ library(ggplot2)
 library(viridis)
 library(here)
 
-#args <- commandArgs(trailingOnly = TRUE)
-#(in_dir <- args[1])
-#(out_dir <- args[2])
-#(reference <- args[3])
-#(query <- args[4])
+args <- commandArgs(trailingOnly = TRUE)
+(in_dir <- args[1])
+(out_dir <- args[2])
+(reference <- args[3])
+(query <- args[4])
 
-in_dir <- "filter20kb_coords"
-out_dir <- "plots"
-reference <- "Chinese Spring"
-query <- "Hilliard"
-dir.create(out_dir)
+#Uncomment below for testing
+#in_dir <- "filter20kb_coords"
+#out_dir <- "plots"
+#reference <- "Chinese Spring"
+#query <- "Hilliard"
+#dir.create(out_dir)
 
 chrs <- c("1A", "1B", "1D", 
           "2A", "2B", "2D", 

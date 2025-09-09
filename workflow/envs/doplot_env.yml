@@ -9,3 +9,6 @@ dependencies:
   - seqkit
   - gnuplot
   - blast
+  - r-ggplot2
+  - r-viridis
+  - r-here
