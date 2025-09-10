@@ -17,7 +17,7 @@ rule all:
         expand("results/plots/20kb/chr_full/{ref}_{query}_{chr}.png", ref = REF_NAME, query = QUERY_NAME, chr = CHRS), 
         expand("results/plots/20kb/chr_chr/{ref}_{query}_{chr}.png", ref = REF_NAME, query = QUERY_NAME, chr = CHRS), 
         expand("results/filter20kb_coords/{ref}_{query}_{chr}.coords", ref = REF_NAME, query = QUERY_NAME, chr = CHRS), 
-        expand("results/Rplots/{ref}_{query}_{chr}.coords.jpg", ref = REF_NAME, query = QUERY_NAME, chr = CHRS)
+        expand("results/Rplots/{ref}_{query}_{chr}.coords.jpeg", ref = REF_NAME, query = QUERY_NAME, chr = CHRS)
 
 rule dustmasker:
     input:
@@ -168,7 +168,7 @@ rule Rplot:
     input:
         coords = expand("results/filter20kb_coords/{ref}_{query}_{chr}.coords", ref = REF_NAME, query = QUERY_NAME, chr = CHRS)
     output:
-        expand("results/Rplots/{ref}_{query}_{{chr}}.coords.jpg", ref = REF_NAME, query = QUERY_NAME)
+        expand("results/Rplots/{ref}_{query}_{{chr}}.coords.jpeg", ref = REF_NAME, query = QUERY_NAME)
     params:
         in_dir = "results/filter20kb_coords", 
         out_dir = "results/Rplots", 
