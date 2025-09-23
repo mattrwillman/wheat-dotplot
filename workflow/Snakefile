@@ -17,24 +17,11 @@ rule all:
         expand("results/plots/20kb/chr_full/{ref}_{query}_{chr}.png", ref = REF_NAME, query = QUERY_NAME, chr = CHRS), 
         expand("results/plots/20kb/chr_chr/{ref}_{query}_{chr}.png", ref = REF_NAME, query = QUERY_NAME, chr = CHRS), 
         expand("results/filter20kb_coords/{ref}_{query}_{chr}.coords", ref = REF_NAME, query = QUERY_NAME, chr = CHRS), 
-        expand("results/Rplots/{ref}_{query}_{chr}.coords.jpeg", ref = REF_NAME, query = QUERY_NAME, chr = CHRS)
-
-rule dustmasker:
-    input:
-        ref = REF_FASTA, 
-        sample = QUERY_FASTA
-    output:
-        ref = expand("results/masked_ref/{ref}.masked.fa", ref = REF_NAME), 
-        sample = expand("results/masked_query/{query}.masked.fa", query = QUERY_NAME)
-    log:
-        "logs/dustmasker.log"
-    shell:
-        "dustmasker -in {input.ref} -out {output.ref} -hard_masking -outfmt fasta ; "
-        "dustmasker -in {input.sample} -out {output.sample} -hard_masking -outfmt fasta"
+        expand("results/Rplots/pairwise_{ref}_{query}_{chr}.coords.jpeg", ref = REF_NAME, query = QUERY_NAME, chr = CHRS)
 
 rule subset_ref_chrs:
     input:
-        expand("results/masked_ref/{ref}.masked.fa", ref = REF_NAME)
+        REF_FASTA
     output:
         "results/ref_chrs/{chr}.fa"
     log:
@@ -45,7 +32,7 @@ rule subset_ref_chrs:
 rule nucmer:
     input:
         ref = "results/ref_chrs/{chr}.fa", 
-        sample = expand("results/masked_query/{query}.masked.fa", query = QUERY_NAME)
+        sample = QUERY_FASTA
     output:
         expand("results/nucmer/{ref}_{query}_{{chr}}.delta", ref = REF_NAME, query = QUERY_NAME)
     params:
@@ -168,7 +155,7 @@ rule Rplot:
     input:
         coords = expand("results/filter20kb_coords/{ref}_{query}_{chr}.coords", ref = REF_NAME, query = QUERY_NAME, chr = CHRS)
     output:
-        expand("results/Rplots/{ref}_{query}_{{chr}}.coords.jpeg", ref = REF_NAME, query = QUERY_NAME)
+        expand("results/Rplots/pairwise_{ref}_{query}_{chr}.coords.jpeg", ref = REF_NAME, query = QUERY_NAME, chr = CHRS)
     params:
         in_dir = "results/filter20kb_coords", 
         out_dir = "results/Rplots", 
