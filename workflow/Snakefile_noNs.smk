@@ -8,6 +8,7 @@ REF_NAME = config['REF_NAME']
 QUERY_FASTA = config['QUERY_FASTA']
 REF_FASTA = config['REF_FASTA']
 CHRS = config['CHRS']
+BREAKLEN = config['BREAKLEN']
 
 rule all:
     input:
@@ -16,9 +17,22 @@ rule all:
         expand("results/filter20kb_coords/{ref}_{query}_{chr}.coords", ref = REF_NAME, query = QUERY_NAME, chr = CHRS), 
         expand("results/Rplots/pairwise_{ref}_{query}_{chr}.coords.jpeg", ref = REF_NAME, query = QUERY_NAME, chr = CHRS)
 
+rule change_gaps:
+    input:
+        ref = REF_FASTA, 
+        query = QUERY_FASTA
+    output:
+        ref = expand("results/ref_adjusted_gaps/{ref}.fasta", ref = REF_NAME), 
+        query = expand("results/query_adjusted_gaps/{query}.fasta", query = QUERY_NAME)
+    params:
+        breaklen = config['BREAKLEN']
+    shell:
+        "bash workflow/scripts/standardize_assembly_breaks.sh {input.ref} {output.ref} {params.breaklen} ; "
+        "bash workflow/scripts/standardize_assembly_breaks.sh {input.query} {output.query} {params.breaklen}"
+
 rule subset_ref_chrs:
     input:
-        REF_FASTA
+        expand("results/ref_adjusted_gaps/{ref}.fasta", ref = REF_NAME)
     output:
         "results/ref_chrs/{chr}.fa"
     log:
@@ -29,7 +43,7 @@ rule subset_ref_chrs:
 rule nucmer:
     input:
         ref = "results/ref_chrs/{chr}.fa", 
-        sample = QUERY_FASTA
+        sample = expand("results/query_adjusted_gaps/{query}.fasta", query = QUERY_NAME)
     output:
         expand("results/nucmer/{ref}_{query}_{{chr}}.delta", ref = REF_NAME, query = QUERY_NAME)
     params:
