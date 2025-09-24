@@ -1,7 +1,7 @@
-QUERY_NAME: "Hilliard"
-REF_NAME: "Attraktion"
-QUERY_FASTA: "/home/matthew.willman/ref/NCBI_MWillman/Taes_Hilliard_1.1.fasta"
-REF_FASTA: "/project/gbru_wheat2/ref/Attraktion_ENA/Attraktion.rename.fasta"
+QUERY_NAME: "AGS2000"
+REF_NAME: "Hilliard"
+QUERY_FASTA: "/home/matthew.willman/ref/NCBI_MWillman/Taes_AGS2000_1.1.fasta"
+REF_FASTA: "/home/matthew.willman/ref/NCBI_MWillman/Taes_Hilliard_1.2.fasta"
 BREAKLEN: "200"    #nucmer default is 200
 CHRS:
   - "chr1A"
