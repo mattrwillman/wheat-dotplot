@@ -83,7 +83,7 @@ rule extract_snps:
         "logs/extract20kb_{chr}.log"
     threads: 12
     shell:
-        "show-snps -C {input} > {output.snps} 2>> {log}"
+        "show-snps -Clr -x 1 -T {input} > {output.snps} 2>> {log}"
 
 rule plotscript:
     input:
