@@ -78,17 +78,19 @@ for (i in 1:length(coords_list)) {
   
   p1 <- ggplot(coords_chr, aes(x = S1 / 1000000, y = PctIDY)) + 
     geom_point(shape = 1) +
+    expand_limits(x = 0) +
     labs(title = chrs[i], 
          subtitle = paste0(query, " aligned to ", reference), 
          x = "Mbp", 
          y = "% ID")
   ggsave(paste0(out_dir, "/seqid_", names(coords_list[i]), ".jpeg"), p1)
   
-  coords_floor <- coords_chr[coords_chr$PctIDY >= 97,]
+  #coords_floor <- coords_chr[coords_chr$PctIDY >= 97,]
   
   p2 <- ggplot(coords_floor, aes(x = S1 / 1000000, y = S2 / 1000000, color = PctIDY)) + 
     geom_point(alpha=0.5) +
-    scale_color_viridis() +
+    expand_limits(x = 0, y = 0) +
+    scale_color_viridis_c(limits = c(97, 100)) +
     labs(x = paste0(reference, " (Mbp)"),
          y = paste0(query, " (Mbp)"), 
          color = "% ID", 
